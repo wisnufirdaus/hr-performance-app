@@ -87,7 +87,7 @@ export default function EvaluationForm({ employee, period, criteriaList, evaluat
     <form onSubmit={handleSubmit} style={{ maxWidth: 640 }}>
       <h2 style={{ marginBottom: 4 }}>{employee.full_name}</h2>
       <p style={{ color: '#666', marginBottom: 20 }}>
-        {employee.division} · {employee.position} · Periode: {period.name}
+        {employee.division} · {employee.position} · Periode: {period?.name || '(periode belum diatur)'}
       </p>
 
       {criteriaList.map((c) => (

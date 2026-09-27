@@ -22,9 +22,6 @@ export default function DivisiDashboard() {
 
   async function init() {
     try {
-      // 1. Pastikan ada sesi login yang valid. Kalau tidak ada (misalnya
-      //    halaman ini dibuka langsung tanpa login, atau sesi kadaluarsa),
-      //    arahkan kembali ke halaman login alih-alih membiarkan error.
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError || !userData?.user) {
         router.push('/login');
@@ -32,8 +29,6 @@ export default function DivisiDashboard() {
       }
       const user = userData.user;
 
-      // 2. Ambil profil (role & divisi). maybeSingle() dipakai supaya
-      //    tidak error kalau baris tidak ditemukan (bukan single()).
       const { data: prof, error: profError } = await supabase
         .from('user_profiles')
         .select('*')
@@ -53,7 +48,6 @@ export default function DivisiDashboard() {
       }
       setProfile(prof);
 
-      // 3. Karyawan aktif di divisi ini saja (dijamin juga oleh RLS di database)
       const { data: emps, error: empError } = await supabase
         .from('employees')
         .select('*')
@@ -62,9 +56,6 @@ export default function DivisiDashboard() {
       if (empError) throw empError;
       setEmployees(emps || []);
 
-      // 4. Kriteria: umum + khusus divisi ini.
-      //    Nilai divisi dibungkus tanda kutip ganda di dalam filter .or()
-      //    supaya aman walau nama divisinya mengandung spasi (mis. "Sales Store").
       const { data: crit, error: critError } = await supabase
         .from('evaluation_criteria')
         .select('*')
@@ -73,9 +64,6 @@ export default function DivisiDashboard() {
       if (critError) throw critError;
       setCriteria(crit || []);
 
-      // 5. Periode aktif (status open) terbaru.
-      //    maybeSingle() dipakai (bukan single()) supaya tidak error kalau
-      //    hasilnya 0 baris atau tidak sengaja ada lebih dari 1 baris.
       const { data: per, error: perError } = await supabase
         .from('evaluation_periods')
         .select('*')
