@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview — Sistem Penilaian Kinerja</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --ink:#1B2A3A;
+    --ink-2:#233648;
+    --ink-3:#2C4258;
+    --paper:#F1F4F3;
+    --paper-2:#FFFFFF;
+    --gold:#D9A441;
+    --gold-dark:#B9832E;
+    --green:#3E7D5A;
+    --rust:#B8483E;
+    --teal:#2F6F72;
+    --slateblue:#3B587A;
+    --slate:#7C8798;
+    --line:#DCE2E5;
+    --muted:#6B7680;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:#DEE3E2; font-family:'IBM Plex Sans', sans-serif; color:var(--ink);
+  }
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+  h1,h2,h3,.display{ font-family:'Sora', sans-serif; }
+
+  /* ---- Prototype switcher (bukan bagian dari aplikasi asli) ---- */
+  .proto-bar{
+    position:sticky; top:0; z-index:50;
+    background:var(--ink); color:#fff;
+    padding:10px 18px; display:flex; align-items:center; gap:10px;
+    font-size:13px; flex-wrap:wrap;
+  }
+  .proto-bar span.tag{
+    background:var(--gold); color:var(--ink); font-weight:700; font-size:11px;
+    padding:3px 8px; border-radius:4px; letter-spacing:.04em; text-transform:uppercase;
+  }
+  .proto-bar button{
+    background:transparent; border:1px solid rgba(255,255,255,.25); color:#fff;
+    padding:6px 14px; border-radius:999px; cursor:pointer; font-family:'IBM Plex Sans';
+    font-size:13px; transition:.15s;
+  }
+  .proto-bar button.active{ background:var(--gold); border-color:var(--gold); color:var(--ink); font-weight:600;}
+  .proto-bar button:hover:not(.active){ border-color:#fff; }
+
+  .stage{ min-height:calc(100vh - 46px); display:flex; justify-content:center; padding:28px 16px; }
+  .frame{ width:100%; max-width:1180px; background:var(--paper); border-radius:14px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.18); }
+  .page{ display:none; }
+  .page.active{ display:block; }
+
+  /* ================= LOGIN ================= */
+  .login-wrap{ display:flex; min-height:640px; }
+  .login-left{
+    flex:1.1; background:linear-gradient(160deg, var(--ink) 0%, var(--ink-3) 100%);
+    color:#fff; padding:56px 48px; display:flex; flex-direction:column; justify-content:space-between; position:relative; overflow:hidden;
+  }
+  .login-left::after{
+    content:""; position:absolute; right:-90px; bottom:-90px; width:320px; height:320px; border-radius:50%;
+    background:conic-gradient(var(--gold) 0 15%, var(--gold-dark) 15% 25%, var(--green) 25% 35%, var(--teal) 35% 70%, var(--slateblue) 70% 85%, var(--rust) 85% 95%, var(--slate) 95% 100%);
+    opacity:.16;
+  }
+  .brand-mark{
+    width:44px; height:44px; border-radius:10px;
+    background:conic-gradient(var(--gold) 0 15%, var(--gold-dark) 15% 25%, var(--green) 25% 35%, var(--teal) 35% 70%, var(--slateblue) 70% 85%, var(--rust) 85% 95%, var(--slate) 95% 100%);
+    display:flex; align-items:center; justify-content:center; font-weight:800;
+  }
+  .brand-row{ display:flex; align-items:center; gap:12px; }
+  .brand-name{ font-size:15px; font-weight:700; letter-spacing:.02em; }
+  .login-quote{ max-width:340px; }
+  .login-quote h2{ font-size:28px; line-height:1.3; font-weight:700; margin-bottom:14px; }
+  .login-quote p{ color:#B9C4CE; font-size:14px; line-height:1.6; }
+  .login-foot{ font-size:12px; color:#8695A3; }
+
+  .login-right{ flex:1; background:var(--paper-2); padding:56px 56px; display:flex; flex-direction:column; justify-content:center; }
+  .login-right form{ max-width:340px; margin:0 auto; width:100%; }
+  .login-right h1{ font-size:22px; margin:0 0 6px; }
+  .login-right .sub{ color:var(--muted); font-size:13px; margin-bottom:28px; }
+  .field{ margin-bottom:16px; }
+  .field label{ display:block; font-size:12px; font-weight:600; color:var(--ink-2); margin-bottom:6px; text-transform:uppercase; letter-spacing:.04em; }
+  .field input, .field select{
+    width:100%; padding:11px 13px; border-radius:8px; border:1.5px solid var(--line); font-size:14px;
+    font-family:'IBM Plex Sans'; background:#fbfcfc;
+  }
+  .field input:focus, .field select:focus{ outline:none; border-color:var(--ink-3); }
+  .btn-primary{
+    width:100%; padding:12px; border:none; border-radius:8px; background:var(--ink); color:#fff;
+    font-weight:600; font-size:14px; cursor:pointer; margin-top:8px; transition:.15s;
+  }
+  .btn-primary:hover{ background:var(--ink-3); }
+  .btn-gold{ background:var(--gold); color:var(--ink); }
+  .btn-gold:hover{ background:var(--gold-dark); }
+  .login-role-hint{ margin-top:22px; padding:12px 14px; background:#F5F2E9; border:1px solid #E9DEC2; border-radius:8px; font-size:12px; color:#7A5E22; }
+
+  /* ================= APP SHELL (dashboard/settings/employee) ================= */
+  .app-shell{ display:flex; min-height:720px; }
+  .sidebar{ width:230px; background:var(--ink); color:#fff; padding:22px 16px; flex-shrink:0; display:flex; flex-direction:column; }
+  .sidebar .brand-row{ padding:0 6px 22px; border-bottom:1px solid rgba(255,255,255,.1); margin-bottom:16px; }
+  .nav-item{
+    display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:8px; color:#C4CDD6;
+    font-size:13.5px; margin-bottom:2px; cursor:pointer; transition:.15s;
+  }
+  .nav-item .dot{ width:6px; height:6px; border-radius:50%; background:currentColor; opacity:.5; }
+  .nav-item:hover{ background:rgba(255,255,255,.06); color:#fff; }
+  .nav-item.active{ background:var(--gold); color:var(--ink); font-weight:600; }
+  .nav-item.active .dot{ background:var(--ink); opacity:1; }
+  .sidebar-foot{ margin-top:auto; padding-top:16px; border-top:1px solid rgba(255,255,255,.1); font-size:12px; color:#8695A3; }
+  .user-chip{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .avatar{ width:30px; height:30px; border-radius:50%; background:var(--slateblue); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; }
+
+  .main{ flex:1; padding:30px 34px; overflow:auto; }
+  .main-head{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+  .main-head h1{ font-size:21px; margin:0 0 4px; }
+  .main-head .sub{ color:var(--muted); font-size:13px; }
+  .period-select{ padding:9px 14px; border-radius:8px; border:1.5px solid var(--line); background:#fff; font-size:13px; }
+
+  .stat-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:22px; }
+  .stat-card{ background:#fff; border-radius:12px; padding:18px 20px; border:1px solid var(--line); }
+  .stat-card .label{ font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px; }
+  .stat-card .value{ font-size:26px; font-weight:700; font-family:'IBM Plex Mono'; }
+  .stat-card .value.gold{ color:var(--gold-dark); }
+  .stat-card .value.green{ color:var(--green); }
+
+  .grid-2{ display:grid; grid-template-columns:1.1fr 1.4fr; gap:18px; margin-bottom:22px; }
+  .card{ background:#fff; border-radius:12px; padding:22px; border:1px solid var(--line); }
+  .card h3{ font-size:14px; margin:0 0 18px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-2); }
+  .card-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; flex-wrap:wrap; gap:10px; }
+  .card-head h3{ margin-bottom:0; }
+  .btn-download{
+    display:inline-flex; align-items:center; gap:7px; padding:8px 16px; border-radius:8px;
+    background:var(--green); color:#fff; border:none; font-size:12.5px; font-weight:600; cursor:pointer;
+    font-family:'IBM Plex Sans'; transition:.15s;
+  }
+  .btn-download:hover{ background:#336a4c; }
+  .btn-download svg{ width:14px; height:14px; }
+  .btn-download.ghost{ background:transparent; color:var(--ink-2); border:1.5px solid var(--line); }
+  .btn-download.ghost:hover{ background:#F5F6F6; border-color:var(--ink-3); color:var(--ink); }
+  .download-toast{
+    position:fixed; bottom:24px; right:24px; background:var(--ink); color:#fff; padding:12px 18px;
+    border-radius:10px; font-size:13px; box-shadow:0 8px 24px rgba(0,0,0,.25); display:flex; align-items:center; gap:10px;
+    transform:translateY(20px); opacity:0; pointer-events:none; transition:.25s; z-index:99;
+  }
+  .download-toast.show{ transform:translateY(0); opacity:1; }
+  .download-toast .dot{ width:8px; height:8px; border-radius:50%; background:var(--gold); }
+
+  .period-filter{
+    display:none; position:absolute; right:0; top:calc(100% + 8px); z-index:20;
+    width:230px; background:#fff; border:1px solid var(--line); border-radius:10px;
+    box-shadow:0 12px 32px rgba(0,0,0,.14); padding:14px;
+  }
+  .period-filter.show{ display:block; }
+  .pf-title{ font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin-bottom:10px; font-weight:600; }
+  .pf-item{ display:flex; align-items:center; gap:8px; font-size:13px; padding:6px 2px; cursor:pointer; color:var(--ink-2); }
+  .pf-item input{ accent-color:var(--green); width:15px; height:15px; }
+  .pf-actions{ display:flex; gap:14px; margin:6px 2px 2px; }
+  .pf-link{ background:none; border:none; padding:0; font-size:11.5px; color:var(--slateblue); cursor:pointer; text-decoration:underline; }
+
+  .ring-wrap{ display:flex; align-items:center; gap:22px; }
+  .ring{
+    position:relative; width:150px; height:150px; border-radius:50%; flex-shrink:0;
+    background:conic-gradient(
+      var(--gold) 0 15%, var(--gold-dark) 15% 25%, var(--green) 25% 35%,
+      var(--teal) 35% 70%, var(--slateblue) 70% 85%, var(--rust) 85% 95%, var(--slate) 95% 100%
+    );
+  }
+  .ring::after{
+    content:""; position:absolute; inset:20px; background:#fff; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .ring-center{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .ring-center b{ font-family:'IBM Plex Mono'; font-size:20px; }
+  .ring-center span{ font-size:10.5px; color:var(--muted); }
+
+  .legend{ list-style:none; margin:0; padding:0; font-size:12.5px; flex:1; }
+  .legend li{ display:flex; align-items:center; gap:8px; padding:5px 0; }
+  .legend .sw{ width:10px; height:10px; border-radius:3px; flex-shrink:0; }
+  .legend .name{ flex:1; color:var(--ink-2); }
+  .legend .pct{ font-family:'IBM Plex Mono'; font-weight:600; }
+
+  .weight-row{ display:flex; align-items:center; gap:12px; padding:9px 0; border-bottom:1px solid #F0F2F3; }
+  .weight-row:last-child{ border-bottom:none; }
+  .weight-row .wname{ width:150px; font-size:13px; color:var(--ink-2); flex-shrink:0; }
+  .wbar-track{ flex:1; height:8px; background:#EEF0F1; border-radius:99px; overflow:hidden; }
+  .wbar-fill{ height:100%; border-radius:99px; }
+  .weight-row .wpct{ width:44px; text-align:right; font-family:'IBM Plex Mono'; font-size:13px; font-weight:600; }
+
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  thead th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); padding:8px 10px; border-bottom:2px solid var(--line); }
+  tbody td{ padding:10px 10px; border-bottom:1px solid #F0F2F3; }
+  tbody tr:hover{ background:#FAFBFB; }
+  .badge{ padding:3px 9px; border-radius:99px; font-size:11px; font-weight:600; }
+  .badge.green{ background:#E5F0EA; color:var(--green); }
+  .badge.gold{ background:#FBF1DD; color:var(--gold-dark); }
+  .badge.rust{ background:#F7E7E5; color:var(--rust); }
+  .score-mono{ font-family:'IBM Plex Mono'; font-weight:600; }
+
+  /* ---- settings page ---- */
+  .settings-editor{ max-width:640px; }
+  .weight-edit-row{ display:flex; align-items:center; gap:14px; padding:14px 0; border-bottom:1px solid #F0F2F3; }
+  .weight-edit-row .wname{ width:170px; font-size:13.5px; font-weight:500; }
+  .weight-edit-row input[type=range]{ flex:1; accent-color:var(--gold-dark); }
+  .weight-edit-row input[type=number]{
+    width:64px; padding:6px 8px; border:1.5px solid var(--line); border-radius:6px; text-align:right;
+    font-family:'IBM Plex Mono'; font-size:13px;
+  }
+  .total-box{
+    margin-top:20px; padding:14px 18px; border-radius:10px; display:flex; justify-content:space-between; align-items:center;
+    font-size:13.5px; font-weight:600; transition:.2s;
+  }
+  .total-box.ok{ background:#E5F0EA; color:var(--green); }
+  .total-box.warn{ background:#F7E7E5; color:var(--rust); }
+  .total-box .num{ font-family:'IBM Plex Mono'; font-size:16px; }
+
+  /* ---- employee input page ---- */
+  .emp-form{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px 18px; margin-bottom:8px; }
+  .emp-form .field.full{ grid-column:1/-1; }
+  .toolbar{ display:flex; gap:10px; margin:18px 0 14px; }
+  .toolbar input[type=text]{ flex:1; padding:9px 13px; border-radius:8px; border:1.5px solid var(--line); font-size:13px; }
+
+  @media (max-width: 860px){
+    .login-wrap{ flex-direction:column; }
+    .app-shell{ flex-direction:column; }
+    .sidebar{ width:100%; flex-direction:row; align-items:center; overflow-x:auto; }
+    .sidebar .brand-row{ border:none; margin:0 12px 0 0; padding:0; }
+    .sidebar-foot{ display:none; }
+    .grid-2, .stat-row, .emp-form{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="proto-bar">
+  <span class="tag">Preview</span>
+  <button class="pbtn active" data-page="login">1. Login</button>
+  <button class="pbtn" data-page="dashboard">2. Dashboard Penilaian</button>
+  <button class="pbtn" data-page="settings">3. Pengaturan Bobot</button>
+  <button class="pbtn" data-page="employee">4. Input Data Karyawan</button>
+</div>
+
+<div class="stage">
+<div class="frame">
+
+  <!-- ================= 1. LOGIN ================= -->
+  <div class="page active" id="page-login">
+    <div class="login-wrap">
+      <div class="login-left">
+        <div class="brand-row">
+          <div class="brand-mark"></div>
+          <div class="brand-name">KINERJA&nbsp;·&nbsp;Sistem Penilaian Karyawan</div>
+        </div>
+        <div class="login-quote">
+          <h2>Satu skor, tujuh sudut pandang tentang kinerja.</h2>
+          <p>Kehadiran, ketepatan waktu, disiplin, produktivitas, kualitas kerja, kepatuhan SOP, dan alpha — dinilai tiap kuartal, dibaca dalam satu dashboard.</p>
+        </div>
+        <div class="login-foot">© 2026 — Akses hanya untuk akun terdaftar perusahaan.</div>
+      </div>
+      <div class="login-right">
+        <form onsubmit="return false;">
+          <h1>Masuk ke akun Anda</h1>
+          <div class="sub">Gunakan email &amp; kata sandi yang diberikan oleh Admin.</div>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" placeholder="nama@perusahaan.com">
+          </div>
+          <div class="field">
+            <label>Kata Sandi</label>
+            <input type="password" placeholder="••••••••">
+          </div>
+          <button class="btn-primary" onclick="goPage('dashboard')">Masuk</button>
+          <div class="login-role-hint">Akun tersedia untuk: HRD, Owner/Direksi, dan 8 Head Divisi. Belum punya akun? Hubungi Admin.</div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 2. DASHBOARD ================= -->
+  <div class="page" id="page-dashboard">
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-row" style="display:flex; align-items:center; gap:10px;">
+          <div class="brand-mark" style="width:32px;height:32px;"></div>
+          <div class="brand-name" style="font-size:13px;">KINERJA</div>
+        </div>
+        <div class="nav-item active"><span class="dot"></span>Ringkasan</div>
+        <div class="nav-item" onclick="goPage('employee')"><span class="dot"></span>Data Karyawan</div>
+        <div class="nav-item"><span class="dot"></span>Penilaian</div>
+        <div class="nav-item" onclick="goPage('settings')"><span class="dot"></span>Pengaturan Bobot</div>
+        <div class="nav-item"><span class="dot"></span>Ekspor Laporan</div>
+        <div class="sidebar-foot">
+          <div class="user-chip"><div class="avatar">HD</div><div>Head Produksi<br><span style="color:#6B7680">Divisi: Produksi</span></div></div>
+          <div onclick="goPage('login')" style="cursor:pointer;">← Keluar</div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="main-head">
+          <div>
+            <h1>Ringkasan Penilaian Kinerja</h1>
+            <div class="sub">Divisi Produksi · Periode berjalan</div>
+          </div>
+          <select class="period-select"><option>Q1 2026 (Jan–Mar)</option><option>Q4 2025 (Okt–Des)</option></select>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-card"><div class="label">Karyawan Dinilai</div><div class="value">18 / 22</div></div>
+          <div class="stat-card"><div class="label">Rata-rata Skor</div><div class="value gold">82.4</div></div>
+          <div class="stat-card"><div class="label">Predikat Dominan</div><div class="value green">Baik</div></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>Komposisi Bobot Penilaian</h3>
+            <div class="ring-wrap">
+              <div class="ring"><div class="ring-center"><b>100%</b><span>Total Bobot</span></div></div>
+              <ul class="legend">
+                <li><span class="sw" style="background:var(--gold)"></span><span class="name">Kehadiran</span><span class="pct">15%</span></li>
+                <li><span class="sw" style="background:var(--gold-dark)"></span><span class="name">Tepat Waktu</span><span class="pct">10%</span></li>
+                <li><span class="sw" style="background:var(--green)"></span><span class="name">Disiplin</span><span class="pct">10%</span></li>
+                <li><span class="sw" style="background:var(--teal)"></span><span class="name">Produktivitas</span><span class="pct">35%</span></li>
+                <li><span class="sw" style="background:var(--slateblue)"></span><span class="name">Kualitas Kerja</span><span class="pct">15%</span></li>
+                <li><span class="sw" style="background:var(--rust)"></span><span class="name">Kepatuhan SOP</span><span class="pct">10%</span></li>
+                <li><span class="sw" style="background:var(--slate)"></span><span class="name">Alpha</span><span class="pct">5%</span></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Detail Bobot per Kategori</h3>
+            <div class="weight-row"><div class="wname">Kehadiran</div><div class="wbar-track"><div class="wbar-fill" style="width:15%;background:var(--gold)"></div></div><div class="wpct">15%</div></div>
+            <div class="weight-row"><div class="wname">Tepat Waktu</div><div class="wbar-track"><div class="wbar-fill" style="width:10%;background:var(--gold-dark)"></div></div><div class="wpct">10%</div></div>
+            <div class="weight-row"><div class="wname">Disiplin</div><div class="wbar-track"><div class="wbar-fill" style="width:10%;background:var(--green)"></div></div><div class="wpct">10%</div></div>
+            <div class="weight-row"><div class="wname">Produktivitas</div><div class="wbar-track"><div class="wbar-fill" style="width:35%;background:var(--teal)"></div></div><div class="wpct">35%</div></div>
+            <div class="weight-row"><div class="wname">Kualitas Kerja</div><div class="wbar-track"><div class="wbar-fill" style="width:15%;background:var(--slateblue)"></div></div><div class="wpct">15%</div></div>
+            <div class="weight-row"><div class="wname">Kepatuhan SOP</div><div class="wbar-track"><div class="wbar-fill" style="width:10%;background:var(--rust)"></div></div><div class="wpct">10%</div></div>
+            <div class="weight-row"><div class="wname">Alpha</div><div class="wbar-track"><div class="wbar-fill" style="width:5%;background:var(--slate)"></div></div><div class="wpct">5%</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>Hasil Penilaian Terbaru</h3>
+            <div style="position:relative;">
+              <button class="btn-download" onclick="togglePeriodFilter(event)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+                Unduh Excel
+              </button>
+              <div class="period-filter" id="periodFilterEval">
+                <div class="pf-title">Pilih Periode yang Diunduh</div>
+                <label class="pf-item"><input type="checkbox" value="Q4 2025" checked> Q4 2025 (Okt–Des)</label>
+                <label class="pf-item"><input type="checkbox" value="Q1 2026" checked> Q1 2026 (Jan–Mar)</label>
+                <div class="pf-actions">
+                  <button class="pf-link" onclick="setAllPeriods('periodFilterEval', true)">Pilih Semua</button>
+                  <button class="pf-link" onclick="setAllPeriods('periodFilterEval', false)">Kosongkan</button>
+                </div>
+                <button class="btn-download" style="width:100%; justify-content:center; margin-top:10px;" onclick="downloadEvaluationExcel()">Unduh Sekarang</button>
+              </div>
+            </div>
+          </div>
+          <table id="evalTable">
+            <thead><tr><th>Nama</th><th>Jabatan</th><th>Periode</th><th>Kehadiran</th><th>Produktivitas</th><th>Kualitas</th><th>Skor Akhir</th><th>Predikat</th></tr></thead>
+            <tbody>
+              <tr data-period="Q1 2026"><td>Budi Santoso</td><td>Operator Produksi</td><td>Q1 2026</td><td class="score-mono">95</td><td class="score-mono">88</td><td class="score-mono">85</td><td class="score-mono">87.6</td><td><span class="badge green">Sangat Baik</span></td></tr>
+              <tr data-period="Q1 2026"><td>Siti Rahma</td><td>Operator Produksi</td><td>Q1 2026</td><td class="score-mono">90</td><td class="score-mono">80</td><td class="score-mono">78</td><td class="score-mono">81.2</td><td><span class="badge gold">Baik</span></td></tr>
+              <tr data-period="Q1 2026"><td>Andi Wijaya</td><td>QC Produksi</td><td>Q1 2026</td><td class="score-mono">75</td><td class="score-mono">70</td><td class="score-mono">72</td><td class="score-mono">71.9</td><td><span class="badge gold">Baik</span></td></tr>
+              <tr data-period="Q1 2026"><td>Dewi Lestari</td><td>Operator Produksi</td><td>Q1 2026</td><td class="score-mono">60</td><td class="score-mono">55</td><td class="score-mono">58</td><td class="score-mono">57.4</td><td><span class="badge rust">Cukup</span></td></tr>
+              <tr data-period="Q4 2025"><td>Budi Santoso</td><td>Operator Produksi</td><td>Q4 2025</td><td class="score-mono">88</td><td class="score-mono">82</td><td class="score-mono">80</td><td class="score-mono">82.9</td><td><span class="badge gold">Baik</span></td></tr>
+              <tr data-period="Q4 2025"><td>Siti Rahma</td><td>Operator Produksi</td><td>Q4 2025</td><td class="score-mono">85</td><td class="score-mono">75</td><td class="score-mono">74</td><td class="score-mono">77.4</td><td><span class="badge gold">Baik</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ================= 3. PENGATURAN BOBOT ================= -->
+  <div class="page" id="page-settings">
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-row" style="display:flex; align-items:center; gap:10px;">
+          <div class="brand-mark" style="width:32px;height:32px;"></div>
+          <div class="brand-name" style="font-size:13px;">KINERJA</div>
+        </div>
+        <div class="nav-item" onclick="goPage('dashboard')"><span class="dot"></span>Ringkasan</div>
+        <div class="nav-item" onclick="goPage('employee')"><span class="dot"></span>Data Karyawan</div>
+        <div class="nav-item"><span class="dot"></span>Penilaian</div>
+        <div class="nav-item active"><span class="dot"></span>Pengaturan Bobot</div>
+        <div class="nav-item"><span class="dot"></span>Ekspor Laporan</div>
+        <div class="sidebar-foot">
+          <div class="user-chip"><div class="avatar">SA</div><div>Super Admin</div></div>
+          <div onclick="goPage('login')" style="cursor:pointer;">← Keluar</div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="main-head">
+          <div>
+            <h1>Pengaturan Bobot Penilaian</h1>
+            <div class="sub">Atur persentase tiap kategori — total harus tepat 100%</div>
+          </div>
+        </div>
+
+        <div class="card settings-editor">
+          <h3>Kategori &amp; Bobot</h3>
+
+          <div class="weight-edit-row">
+            <div class="wname">Kehadiran</div>
+            <input type="range" min="0" max="100" value="15" oninput="updateWeight(this,'v1')">
+            <input type="number" min="0" max="100" value="15" id="v1" oninput="syncWeight(this,'v1')">
+            <span class="mono">%</span>
+          </div>
+          <div class="weight-edit-row">
+            <div class="wname">Tepat Waktu</div>
+            <input type="range" min="0" max="100" value="10" oninput="updateWeight(this,'v2')">
+            <input type="number" min="0" max="100" value="10" id="v2" oninput="syncWeight(this,'v2')">
+            <span class="mono">%</span>
+          </div>
+          <div class="weight-edit-row">
+            <div class="wname">Disiplin</div>
+            <input type="range" min="0" max="100" value="10" oninput="updateWeight(this,'v3')">
+            <input type="number" min="0" max="100" value="10" id="v3" oninput="syncWeight(this,'v3')">
+            <span class="mono">%</span>
+          </div>
+          <div class="weight-edit-row">
+            <div class="wname">Produktivitas</div>
+            <input type="range" min="0" max="100" value="35" oninput="updateWeight(this,'v4')">
+            <input type="number" min="0" max="100" value="35" id="v4" oninput="syncWeight(this,'v4')">
+            <span class="mono">%</span>
+          </div>
+          <div class="weight-edit-row">
+            <div class="wname">Kualitas Kerja</div>
+            <input type="range" min="0" max="100" value="15" oninput="updateWeight(this,'v5')">
+            <input type="number" min="0" max="100" value="15" id="v5" oninput="syncWeight(this,'v5')">
+            <span class="mono">%</span>
+          </div>
+          <div class="weight-edit-row">
+            <div class="wname">Kepatuhan SOP</div>
+            <input type="range" min="0" max="100" value="10" oninput="updateWeight(this,'v6')">
+            <input type="number" min="0" max="100" value="10" id="v6" oninput="syncWeight(this,'v6')">
+            <span class="mono">%</span>
+          </div>
+          <div class="weight-edit-row">
+            <div class="wname">Alpha</div>
+            <input type="range" min="0" max="100" value="5" oninput="updateWeight(this,'v7')">
+            <input type="number" min="0" max="100" value="5" id="v7" oninput="syncWeight(this,'v7')">
+            <span class="mono">%</span>
+          </div>
+
+          <div class="total-box ok" id="totalBox">
+            <span>Total Bobot Saat Ini</span>
+            <span class="num" id="totalNum">100%</span>
+          </div>
+
+          <button class="btn-primary btn-gold" style="max-width:200px; margin-top:18px;">Simpan Pengaturan</button>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ================= 4. INPUT DATA KARYAWAN ================= -->
+  <div class="page" id="page-employee">
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-row" style="display:flex; align-items:center; gap:10px;">
+          <div class="brand-mark" style="width:32px;height:32px;"></div>
+          <div class="brand-name" style="font-size:13px;">KINERJA</div>
+        </div>
+        <div class="nav-item" onclick="goPage('dashboard')"><span class="dot"></span>Ringkasan</div>
+        <div class="nav-item active"><span class="dot"></span>Data Karyawan</div>
+        <div class="nav-item"><span class="dot"></span>Penilaian</div>
+        <div class="nav-item" onclick="goPage('settings')"><span class="dot"></span>Pengaturan Bobot</div>
+        <div class="nav-item"><span class="dot"></span>Ekspor Laporan</div>
+        <div class="sidebar-foot">
+          <div class="user-chip"><div class="avatar">HR</div><div>HRD</div></div>
+          <div onclick="goPage('login')" style="cursor:pointer;">← Keluar</div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="main-head">
+          <div>
+            <h1>Data Karyawan</h1>
+            <div class="sub">Tambahkan karyawan baru atau perbarui status aktif/resign</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+          <h3>Tambah Karyawan Baru</h3>
+          <div class="emp-form">
+            <div class="field"><label>NIK</label><input type="text" placeholder="EMP-00231"></div>
+            <div class="field"><label>Nama Lengkap</label><input type="text" placeholder="Nama karyawan"></div>
+            <div class="field">
+              <label>Divisi</label>
+              <select>
+                <option>Sales Store</option><option>Marketing</option><option>Supermarket</option>
+                <option>Marketplace</option><option selected>Produksi</option><option>Pastry</option>
+                <option>Warehouse</option><option>Packaging</option>
+              </select>
+            </div>
+            <div class="field"><label>Jabatan</label><input type="text" placeholder="Operator Produksi"></div>
+            <div class="field"><label>Tanggal Bergabung</label><input type="date"></div>
+            <div class="field">
+              <label>Status</label>
+              <select><option>Aktif</option><option>Resign</option></select>
+            </div>
+          </div>
+          <button class="btn-primary btn-gold" style="max-width:200px;">Simpan Karyawan</button>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>Daftar Karyawan</h3>
+            <button class="btn-download ghost" onclick="downloadEmployeeExcel()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+              Unduh Excel
+            </button>
+          </div>
+          <div class="toolbar">
+            <input type="text" placeholder="Cari nama atau NIK...">
+            <select class="period-select"><option>Semua Divisi</option><option>Produksi</option></select>
+          </div>
+          <table id="empTable">
+            <thead><tr><th>NIK</th><th>Nama</th><th>Divisi</th><th>Jabatan</th><th>Status</th><th>Aksi</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">EMP-00114</td><td>Budi Santoso</td><td>Produksi</td><td>Operator Produksi</td><td><span class="badge green">Aktif</span></td><td><a href="#" style="color:var(--slateblue)">Edit</a></td></tr>
+              <tr><td class="mono">EMP-00115</td><td>Siti Rahma</td><td>Produksi</td><td>Operator Produksi</td><td><span class="badge green">Aktif</span></td><td><a href="#" style="color:var(--slateblue)">Edit</a></td></tr>
+              <tr><td class="mono">EMP-00098</td><td>Andi Wijaya</td><td>Produksi</td><td>QC Produksi</td><td><span class="badge green">Aktif</span></td><td><a href="#" style="color:var(--slateblue)">Edit</a></td></tr>
+              <tr><td class="mono">EMP-00072</td><td>Dewi Lestari</td><td>Pastry</td><td>Baker</td><td><span class="badge rust">Resign</span></td><td><a href="#" style="color:var(--slateblue)">Edit</a></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+  function goPage(name){
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    document.querySelectorAll('.pbtn').forEach(b => b.classList.toggle('active', b.dataset.page === name));
+    document.querySelector('.stage').scrollIntoView({behavior:'smooth'});
+  }
+  document.querySelectorAll('.pbtn').forEach(btn => {
+    btn.addEventListener('click', () => goPage(btn.dataset.page));
+  });
+
+  const barColors = { v1:'var(--gold)', v2:'var(--gold-dark)', v3:'var(--green)', v4:'var(--teal)', v5:'var(--slateblue)', v6:'var(--rust)', v7:'var(--slate)' };
+
+  function recalcTotal(){
+    let total = 0;
+    Object.keys(barColors).forEach(id => { total += Number(document.getElementById(id).value || 0); });
+    const box = document.getElementById('totalBox');
+    const num = document.getElementById('totalNum');
+    num.textContent = total + '%';
+    box.classList.toggle('ok', total === 100);
+    box.classList.toggle('warn', total !== 100);
+  }
+
+  function updateWeight(rangeEl, numId){
+    document.getElementById(numId).value = rangeEl.value;
+    recalcTotal();
+  }
+  function syncWeight(numEl, numId){
+    const row = numEl.closest('.weight-edit-row');
+    row.querySelector('input[type=range]').value = numEl.value;
+    recalcTotal();
+  }
+  recalcTotal();
+
+  /* ---- Download hasil penilaian & data karyawan ke Excel ---- */
+  function showToast(message){
+    let toast = document.getElementById('dlToast');
+    if(!toast){
+      toast = document.createElement('div');
+      toast.id = 'dlToast';
+      toast.className = 'download-toast';
+      toast.innerHTML = '<span class="dot"></span><span id="dlToastMsg"></span>';
+      document.body.appendChild(toast);
+    }
+    document.getElementById('dlToastMsg').textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => toast.classList.remove('show'), 3200);
+  }
+
+  function togglePeriodFilter(e){
+    e.stopPropagation();
+    const panel = document.getElementById('periodFilterEval');
+    panel.classList.toggle('show');
+  }
+  document.addEventListener('click', (e) => {
+    const panel = document.getElementById('periodFilterEval');
+    if(panel && !panel.contains(e.target) && !e.target.closest('.btn-download')){
+      panel.classList.remove('show');
+    }
+  });
+  function setAllPeriods(panelId, checked){
+    document.querySelectorAll('#' + panelId + ' input[type=checkbox]').forEach(cb => cb.checked = checked);
+  }
+  function getSelectedPeriods(){
+    return [...document.querySelectorAll('#periodFilterEval input[type=checkbox]:checked')].map(cb => cb.value);
+  }
+
+  function tableToAOA(tableId, skipLastCol, periodFilter){
+    const table = document.getElementById(tableId);
+    const rows = [];
+    table.querySelectorAll('tr').forEach(tr => {
+      if(periodFilter && tr.dataset.period && !periodFilter.includes(tr.dataset.period)) return;
+      const cells = [...tr.children];
+      const useCells = skipLastCol ? cells.slice(0, -1) : cells;
+      rows.push(useCells.map(td => td.innerText.trim()));
+    });
+    return rows;
+  }
+
+  function downloadEvaluationExcel(){
+    const selectedPeriods = getSelectedPeriods();
+    if(selectedPeriods.length === 0){
+      showToast('Pilih minimal satu periode terlebih dahulu');
+      return;
+    }
+    const aoa = tableToAOA('evalTable', false, selectedPeriods);
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [{wch:20},{wch:20},{wch:12},{wch:12},{wch:14},{wch:10},{wch:12},{wch:14}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Hasil Penilaian');
+    const filename = `Hasil-Penilaian-${selectedPeriods.join('_').replace(/\s+/g,'-')}.xlsx`;
+    XLSX.writeFile(wb, filename);
+    document.getElementById('periodFilterEval').classList.remove('show');
+    showToast('Berhasil diunduh: ' + filename);
+  }
+
+  function downloadEmployeeExcel(){
+    const aoa = tableToAOA('empTable', true, null);
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [{wch:14},{wch:20},{wch:14},{wch:20},{wch:12}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Data Karyawan');
+    const filename = `Data-Karyawan-${new Date().toISOString().slice(0,10)}.xlsx`;
+    XLSX.writeFile(wb, filename);
+    showToast('Berhasil diunduh: ' + filename);
+  }
+</script>
+
+</body>
+</html>

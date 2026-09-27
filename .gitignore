@@ -1,0 +1,16 @@
+# dependency
+/node_modules
+
+# next.js build output
+/.next/
+/out/
+
+# environment variables (BERISI KUNCI RAHASIA - JANGAN DI-PUSH)
+.env
+.env.local
+.env*.local
+
+# misc
+.DS_Store
+*.log
+npm-debug.log*
