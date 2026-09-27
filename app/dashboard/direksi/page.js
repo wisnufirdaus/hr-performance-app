@@ -1,11 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '../../../lib/supabaseClient';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import AppShell, { MainHead } from '../../../components/AppShell';
+import { COLORS, card, cardTitle, input, statCard, statLabel, statValue } from '../../../lib/theme';
 
 export default function DireksiDashboard() {
   const supabase = createClient();
+  const router = useRouter();
   const [summary, setSummary] = useState([]);
   const [periods, setPeriods] = useState([]);
   const [selectedPeriod, setSelectedPeriod] = useState(null);
@@ -48,35 +52,64 @@ export default function DireksiDashboard() {
     );
   }
 
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    router.push('/login');
+  }
+
+  const periodName = periods.find((p) => p.id === selectedPeriod)?.name || '-';
+  const overallAvg = summary.length
+    ? (summary.reduce((s, d) => s + d.rataRata, 0) / summary.length).toFixed(1)
+    : '-';
+  const topDivision = summary.length
+    ? summary.reduce((a, b) => (b.rataRata > a.rataRata ? b : a)).division
+    : '-';
+
   return (
-    <div style={{ padding: 24, maxWidth: 900, margin: '0 auto' }}>
-      <h1>Dashboard Owner / Direksi</h1>
-      <p style={{ color: '#666' }}>Perkembangan kinerja karyawan per divisi (read-only)</p>
+    <AppShell navLabel="Ringkasan" userInitials="DR" userName="Owner / Direksi" userSub="Read-only" onLogout={handleLogout}>
+      <MainHead
+        title="Dashboard Owner / Direksi"
+        subtitle={`Perkembangan kinerja karyawan per divisi \u00b7 ${periodName}`}
+        right={
+          <select
+            value={selectedPeriod || ''}
+            onChange={(e) => setSelectedPeriod(e.target.value)}
+            style={{ ...input, width: 'auto' }}
+          >
+            {periods.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        }
+      />
 
-      <select
-        value={selectedPeriod || ''}
-        onChange={(e) => setSelectedPeriod(e.target.value)}
-        style={{ padding: 8, borderRadius: 6, border: '1px solid #ddd', margin: '16px 0' }}
-      >
-        {periods.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-      </select>
-
-      <div style={{ background: '#fff', border: '1px solid #eee', borderRadius: 12, padding: 16, height: 380 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={summary}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="division" tick={{ fontSize: 12 }} />
-            <YAxis domain={[0, 100]} />
-            <Tooltip />
-            <Bar dataKey="rataRata" fill="#2563eb" radius={[6, 6, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 22 }}>
+        <div style={statCard}>
+          <div style={statLabel}>Rata-rata Skor Seluruh Divisi</div>
+          <div style={{ ...statValue, color: COLORS.goldDark }}>{overallAvg}</div>
+        </div>
+        <div style={statCard}>
+          <div style={statLabel}>Divisi Skor Tertinggi</div>
+          <div style={{ ...statValue, color: COLORS.green, fontSize: 20 }}>{topDivision}</div>
+        </div>
       </div>
 
-      <p style={{ fontSize: 13, color: '#888', marginTop: 12 }}>
-        Grafik menampilkan rata-rata skor kinerja tiap divisi pada periode yang dipilih.
-        Untuk melihat rincian per karyawan, hubungi HRD untuk laporan Excel lengkap.
-      </p>
-    </div>
+      <div style={card}>
+        <h3 style={cardTitle}>Rata-rata Skor per Divisi</h3>
+        <div style={{ height: 360 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={summary}>
+              <CartesianGrid strokeDasharray="3 3" stroke={COLORS.line} />
+              <XAxis dataKey="division" tick={{ fontSize: 12, fill: COLORS.muted }} />
+              <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: COLORS.muted }} />
+              <Tooltip />
+              <Bar dataKey="rataRata" fill={COLORS.teal} radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <p style={{ fontSize: 13, color: COLORS.muted, marginTop: 12, marginBottom: 0 }}>
+          Grafik menampilkan rata-rata skor kinerja tiap divisi pada periode yang dipilih.
+          Untuk melihat rincian per karyawan, hubungi HRD untuk laporan Excel lengkap.
+        </p>
+      </div>
+    </AppShell>
   );
 }

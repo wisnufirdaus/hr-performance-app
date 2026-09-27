@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { createClient } from '../lib/supabaseClient';
+import { COLORS, fontDisplay, badge, gradeVariant, button, input } from '../lib/theme';
 
 /**
  * Form penilaian kinerja.
@@ -83,22 +84,24 @@ export default function EvaluationForm({ employee, period, criteriaList, evaluat
     onSaved && onSaved(evalRow);
   }
 
+  const grade = gradeFromScore(totalScore);
+
   return (
     <form onSubmit={handleSubmit} style={{ maxWidth: 640 }}>
-      <h2 style={{ marginBottom: 4 }}>{employee.full_name}</h2>
-      <p style={{ color: '#666', marginBottom: 20 }}>
-        {employee.division} · {employee.position} · Periode: {period?.name || '(periode belum diatur)'}
+      <h2 style={{ marginBottom: 4, fontFamily: fontDisplay, fontSize: 19 }}>{employee.full_name}</h2>
+      <p style={{ color: COLORS.muted, marginBottom: 20, fontSize: 13.5 }}>
+        {employee.division} &middot; {employee.position} &middot; Periode: {period?.name || '(periode belum diatur)'}
       </p>
 
       {criteriaList.map((c) => (
-        <div key={c.id} style={{ marginBottom: 16, padding: 12, border: '1px solid #eee', borderRadius: 8 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <strong>{c.name}</strong>
-            <span style={{ fontSize: 12, color: '#888' }}>
-              Bobot {c.weight}% · {c.category === 'umum' ? 'Kriteria Umum' : 'Kriteria Divisi'}
+        <div key={c.id} style={{ marginBottom: 12, padding: '12px 14px', border: `1px solid ${COLORS.line}`, borderRadius: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <strong style={{ fontSize: 13.5, color: COLORS.ink2 }}>{c.name}</strong>
+            <span style={badge(c.category === 'umum' ? 'gold' : 'green')}>
+              Bobot {c.weight}% &middot; {c.category === 'umum' ? 'Umum' : 'Divisi'}
             </span>
           </div>
-          {c.description && <p style={{ fontSize: 13, color: '#666', margin: '4px 0' }}>{c.description}</p>}
+          {c.description && <p style={{ fontSize: 12.5, color: COLORS.muted, margin: '6px 0 0' }}>{c.description}</p>}
           <input
             type="number"
             min={0}
@@ -107,28 +110,25 @@ export default function EvaluationForm({ employee, period, criteriaList, evaluat
             value={scores[c.id]}
             onChange={(e) => setScores({ ...scores, [c.id]: e.target.value })}
             placeholder={`Skor 0 - ${c.max_score}`}
-            style={{ width: 140, padding: 8, borderRadius: 6, border: '1px solid #ddd', marginTop: 6 }}
+            style={{ ...input, width: 160, marginTop: 10 }}
           />
         </div>
       ))}
 
-      <div style={{ margin: '20px 0', padding: 12, background: '#f0f9ff', borderRadius: 8 }}>
-        <strong>Total Skor (terbobot): {totalScore} → Predikat: {gradeFromScore(totalScore)}</strong>
+      <div style={{ ...badge(gradeVariant(grade)), display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', boxSizing: 'border-box', padding: '14px 18px', borderRadius: 10, fontSize: 13.5, margin: '20px 0' }}>
+        <span>Total Skor (terbobot): <strong style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{totalScore}</strong></span>
+        <span>Predikat: <strong>{grade}</strong></span>
       </div>
 
-      <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Catatan Tambahan</label>
+      <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, fontSize: 13, color: COLORS.ink2 }}>Catatan Tambahan</label>
       <textarea
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         rows={3}
-        style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd', boxSizing: 'border-box' }}
+        style={{ ...input, width: '100%' }}
       />
 
-      <button
-        type="submit"
-        disabled={saving}
-        style={{ marginTop: 16, padding: '10px 24px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}
-      >
+      <button type="submit" disabled={saving} style={{ ...button('gold'), marginTop: 16 }}>
         {saving ? 'Menyimpan...' : 'Simpan Penilaian'}
       </button>
     </form>

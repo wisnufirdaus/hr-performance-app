@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient, ROLE_CONFIG } from '../../lib/supabaseClient';
+import { COLORS, fontDisplay, input, label, button } from '../../lib/theme';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -46,53 +47,101 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={styles.wrapper}>
-      <form onSubmit={handleLogin} style={styles.card}>
-        <h1 style={styles.title}>Sistem Penilaian Kinerja Karyawan</h1>
-        <p style={styles.subtitle}>Login menggunakan akun yang telah didaftarkan oleh Admin</p>
+    <div style={styles.wrap}>
+      {/* Panel kiri */}
+      <div style={styles.left}>
+        <div style={styles.decorCircle} />
+        <div style={styles.brandRow}>
+          <div style={styles.brandMark} />
+          <div style={styles.brandName}>KINERJA &middot; Sistem Penilaian Karyawan</div>
+        </div>
+        <div style={styles.quote}>
+          <h2 style={styles.quoteTitle}>Satu skor, tujuh sudut pandang tentang kinerja.</h2>
+          <p style={styles.quoteText}>
+            Kehadiran, ketepatan waktu, disiplin, produktivitas, kualitas kerja,
+            kepatuhan SOP, dan alpha &mdash; dinilai tiap kuartal, dibaca dalam satu dashboard.
+          </p>
+        </div>
+        <div style={styles.foot}>&copy; {new Date().getFullYear()} &mdash; Akses hanya untuk akun terdaftar perusahaan.</div>
+      </div>
 
-        <label style={styles.label}>Email</label>
-        <input
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={styles.input}
-          placeholder="nama@perusahaan.com"
-        />
+      {/* Panel kanan: form */}
+      <div style={styles.right}>
+        <form onSubmit={handleLogin} style={styles.form}>
+          <h1 style={styles.title}>Masuk ke akun Anda</h1>
+          <p style={styles.sub}>Gunakan email &amp; kata sandi yang diberikan oleh Admin.</p>
 
-        <label style={styles.label}>Password</label>
-        <input
-          type="password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={styles.input}
-          placeholder="••••••••"
-        />
+          <div style={{ marginBottom: 16 }}>
+            <label style={label}>Email</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={input}
+              placeholder="nama@perusahaan.com"
+            />
+          </div>
 
-        {error && <p style={styles.error}>{error}</p>}
+          <div style={{ marginBottom: 16 }}>
+            <label style={label}>Kata Sandi</label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={input}
+              placeholder="••••••••"
+            />
+          </div>
 
-        <button type="submit" disabled={loading} style={styles.button}>
-          {loading ? 'Memproses...' : 'Masuk'}
-        </button>
+          {error && <p style={styles.error}>{error}</p>}
 
-        <p style={styles.footnote}>
-          Belum punya akun? Hubungi Admin untuk pendaftaran.
-        </p>
-      </form>
+          <button type="submit" disabled={loading} style={{ ...button('primary'), width: '100%', padding: 12, marginTop: 8 }}>
+            {loading ? 'Memproses...' : 'Masuk'}
+          </button>
+
+          <div style={styles.roleHint}>
+            Akun tersedia untuk: HRD, Owner/Direksi, dan 8 Head Divisi. Belum punya akun? Hubungi Admin.
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
 
 const styles = {
-  wrapper: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4f5f7' },
-  card: { background: '#fff', padding: '2.5rem', borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', width: 380 },
-  title: { fontSize: 20, fontWeight: 700, marginBottom: 4, color: '#1a1a2e' },
-  subtitle: { fontSize: 13, color: '#666', marginBottom: 24 },
-  label: { fontSize: 13, fontWeight: 600, color: '#333', display: 'block', marginTop: 12, marginBottom: 4 },
-  input: { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' },
-  button: { width: '100%', marginTop: 20, padding: '12px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff', fontWeight: 600, cursor: 'pointer' },
-  error: { color: '#dc2626', fontSize: 13, marginTop: 10 },
-  footnote: { fontSize: 12, color: '#888', marginTop: 16, textAlign: 'center' },
+  wrap: { minHeight: '100vh', display: 'flex', flexWrap: 'wrap' },
+  left: {
+    flex: '1 1 420px', background: `linear-gradient(160deg, ${COLORS.ink} 0%, ${COLORS.ink3} 100%)`,
+    color: '#fff', padding: '56px 48px', display: 'flex', flexDirection: 'column',
+    justifyContent: 'space-between', position: 'relative', overflow: 'hidden',
+  },
+  decorCircle: {
+    content: '""', position: 'absolute', right: -90, bottom: -90, width: 320, height: 320,
+    borderRadius: '50%', opacity: 0.16,
+    background: `conic-gradient(${COLORS.gold} 0 15%, ${COLORS.goldDark} 15% 25%, ${COLORS.green} 25% 35%, ${COLORS.teal} 35% 70%, ${COLORS.slateblue} 70% 85%, ${COLORS.rust} 85% 95%, ${COLORS.slate} 95% 100%)`,
+  },
+  brandRow: { display: 'flex', alignItems: 'center', gap: 12 },
+  brandMark: {
+    width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+    background: `conic-gradient(${COLORS.gold} 0 15%, ${COLORS.goldDark} 15% 25%, ${COLORS.green} 25% 35%, ${COLORS.teal} 35% 70%, ${COLORS.slateblue} 70% 85%, ${COLORS.rust} 85% 95%, ${COLORS.slate} 95% 100%)`,
+  },
+  brandName: { fontSize: 15, fontWeight: 700, letterSpacing: '.02em', fontFamily: fontDisplay },
+  quote: { maxWidth: 340 },
+  quoteTitle: { fontSize: 28, lineHeight: 1.3, fontWeight: 700, marginBottom: 14, fontFamily: fontDisplay },
+  quoteText: { color: '#B9C4CE', fontSize: 14, lineHeight: 1.6 },
+  foot: { fontSize: 12, color: '#8695A3', position: 'relative' },
+  right: {
+    flex: '1 1 420px', background: COLORS.paper2, padding: '56px', display: 'flex',
+    flexDirection: 'column', justifyContent: 'center',
+  },
+  form: { maxWidth: 340, margin: '0 auto', width: '100%' },
+  title: { fontSize: 22, margin: '0 0 6px', fontFamily: fontDisplay },
+  sub: { color: COLORS.muted, fontSize: 13, marginBottom: 28 },
+  error: { color: COLORS.rust, fontSize: 13, marginTop: 4, marginBottom: 4 },
+  roleHint: {
+    marginTop: 22, padding: '12px 14px', background: '#F5F2E9', border: '1px solid #E9DEC2',
+    borderRadius: 8, fontSize: 12, color: '#7A5E22',
+  },
 };

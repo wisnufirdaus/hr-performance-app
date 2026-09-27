@@ -1,8 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '../../../lib/supabaseClient';
 import { exportEvaluationToExcel } from '../../../lib/exportExcel';
+import AppShell, { MainHead } from '../../../components/AppShell';
+import {
+  COLORS, card, cardTitle, badge, statusVariant, button, input, label,
+  th, td, statCard, statLabel, statValue,
+} from '../../../lib/theme';
 
 const DIVISIONS = [
   'Sales Store', 'Marketing', 'Supermarket', 'Marketplace',
@@ -11,6 +17,7 @@ const DIVISIONS = [
 
 export default function HRDDashboard() {
   const supabase = createClient();
+  const router = useRouter();
   const [employees, setEmployees] = useState([]);
   const [filterStatus, setFilterStatus] = useState('aktif');
   const [showForm, setShowForm] = useState(false);
@@ -113,94 +120,133 @@ export default function HRDDashboard() {
     setShowPeriodFilter(false);
   }
 
-  return (
-    <div style={{ padding: 24, maxWidth: 1000, margin: '0 auto' }}>
-      <h1>Dashboard HRD</h1>
-      <p style={{ color: '#666' }}>Kelola data karyawan & tarik rekap penilaian ke Excel</p>
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    router.push('/login');
+  }
 
-      <div style={{ display: 'flex', gap: 10, margin: '16px 0' }}>
-        <button onClick={() => setFilterStatus('aktif')} style={btn(filterStatus === 'aktif')}>Karyawan Aktif</button>
-        <button onClick={() => setFilterStatus('resign')} style={btn(filterStatus === 'resign')}>Karyawan Resign</button>
-        <button onClick={() => setShowForm(!showForm)} style={{ ...btn(false), marginLeft: 'auto' }}>+ Tambah Karyawan</button>
-        <div style={{ position: 'relative' }}>
-          <button onClick={() => setShowPeriodFilter(!showPeriodFilter)} style={{ ...btn(false), background: '#16a34a', color: '#fff' }}>
-            Export Excel (Pilih Periode)
-          </button>
-          {showPeriodFilter && (
-            <div style={{
-              position: 'absolute', right: 0, top: '110%', background: '#fff', border: '1px solid #ddd',
-              borderRadius: 10, padding: 14, width: 240, boxShadow: '0 10px 30px rgba(0,0,0,0.12)', zIndex: 10,
-            }}>
-              <p style={{ fontSize: 12, fontWeight: 600, color: '#666', margin: '0 0 8px', textTransform: 'uppercase' }}>
-                Pilih Periode yang Diekspor
-              </p>
-              {periods.map((p) => (
-                <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, padding: '5px 0', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={selectedPeriodIds.includes(p.id)}
-                    onChange={() => togglePeriod(p.id)}
-                  />
-                  {p.name}
-                </label>
-              ))}
-              <div style={{ display: 'flex', gap: 12, margin: '8px 0 4px' }}>
-                <button onClick={() => setSelectedPeriodIds(periods.map((p) => p.id))} style={linkBtn}>Pilih Semua</button>
-                <button onClick={() => setSelectedPeriodIds([])} style={linkBtn}>Kosongkan</button>
-              </div>
-              <button onClick={handleExportAll} style={{ ...btn(true), width: '100%', marginTop: 10 }}>
-                Unduh Sekarang
-              </button>
-            </div>
-          )}
-        </div>
+  return (
+    <AppShell navLabel="Data Karyawan" userInitials="HR" userName="HRD" onLogout={handleLogout}>
+      <MainHead title="Data Karyawan & Rekap Penilaian" subtitle="Kelola data karyawan & tarik rekap penilaian ke Excel" />
+
+      <div style={{ ...statCard, display: 'inline-flex', flexDirection: 'column', marginBottom: 22 }}>
+        <div style={statLabel}>Karyawan {filterStatus === 'aktif' ? 'Aktif' : 'Resign'}</div>
+        <div style={{ ...statValue, color: COLORS.goldDark }}>{employees.length}</div>
       </div>
 
-      {showForm && (
-        <form onSubmit={handleAddEmployee} style={{ padding: 16, border: '1px solid #eee', borderRadius: 8, marginBottom: 16 }}>
-          <input required placeholder="NIK" value={newEmployee.nik} onChange={(e) => setNewEmployee({ ...newEmployee, nik: e.target.value })} style={inputStyle} />
-          <input required placeholder="Nama Lengkap" value={newEmployee.full_name} onChange={(e) => setNewEmployee({ ...newEmployee, full_name: e.target.value })} style={inputStyle} />
-          <select value={newEmployee.division} onChange={(e) => setNewEmployee({ ...newEmployee, division: e.target.value })} style={inputStyle}>
-            {DIVISIONS.map((d) => <option key={d} value={d}>{d}</option>)}
-          </select>
-          <input placeholder="Jabatan" value={newEmployee.position} onChange={(e) => setNewEmployee({ ...newEmployee, position: e.target.value })} style={inputStyle} />
-          <button type="submit" style={{ ...btn(true), marginTop: 8 }}>Simpan</button>
-        </form>
-      )}
+      <div style={{ ...card, marginBottom: 20 }}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: showForm ? 18 : 0 }}>
+          <button onClick={() => setFilterStatus('aktif')} style={button(filterStatus === 'aktif' ? 'primary' : 'ink-outline')}>
+            Karyawan Aktif
+          </button>
+          <button onClick={() => setFilterStatus('resign')} style={button(filterStatus === 'resign' ? 'primary' : 'ink-outline')}>
+            Karyawan Resign
+          </button>
+          <button onClick={() => setShowForm(!showForm)} style={{ ...button('ink-outline'), marginLeft: 'auto' }}>
+            + Tambah Karyawan
+          </button>
+          <div style={{ position: 'relative' }}>
+            <button onClick={() => setShowPeriodFilter(!showPeriodFilter)} style={button('green')}>
+              Unduh Excel
+            </button>
+            {showPeriodFilter && (
+              <div style={styles.periodFilter}>
+                <div style={styles.pfTitle}>Pilih Periode yang Diekspor</div>
+                {periods.map((p) => (
+                  <label key={p.id} style={styles.pfItem}>
+                    <input
+                      type="checkbox"
+                      checked={selectedPeriodIds.includes(p.id)}
+                      onChange={() => togglePeriod(p.id)}
+                    />
+                    {p.name}
+                  </label>
+                ))}
+                <div style={{ display: 'flex', gap: 14, margin: '6px 2px 2px' }}>
+                  <button onClick={() => setSelectedPeriodIds(periods.map((p) => p.id))} style={button('link')}>Pilih Semua</button>
+                  <button onClick={() => setSelectedPeriodIds([])} style={button('link')}>Kosongkan</button>
+                </div>
+                <button onClick={handleExportAll} style={{ ...button('green'), width: '100%', justifyContent: 'center', marginTop: 10 }}>
+                  Unduh Sekarang
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
 
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr style={{ textAlign: 'left', borderBottom: '2px solid #eee' }}>
-            <th style={th}>NIK</th><th style={th}>Nama</th><th style={th}>Divisi</th><th style={th}>Jabatan</th><th style={th}>Aksi</th>
-          </tr>
-        </thead>
-        <tbody>
-          {employees.map((emp) => (
-            <tr key={emp.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-              <td style={td}>{emp.nik}</td>
-              <td style={td}>{emp.full_name}</td>
-              <td style={td}>{emp.division}</td>
-              <td style={td}>{emp.position}</td>
-              <td style={td}>
-                {filterStatus === 'aktif' && (
-                  <button onClick={() => markAsResign(emp.id)} style={{ color: '#dc2626', border: 'none', background: 'none', cursor: 'pointer' }}>
-                    Tandai Resign
-                  </button>
-                )}
-              </td>
+        {showForm && (
+          <form onSubmit={handleAddEmployee} style={{ borderTop: `1px solid ${COLORS.line}`, paddingTop: 18 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
+              <div>
+                <label style={label}>NIK</label>
+                <input required placeholder="EMP-00231" value={newEmployee.nik}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, nik: e.target.value })} style={input} />
+              </div>
+              <div>
+                <label style={label}>Nama Lengkap</label>
+                <input required placeholder="Nama karyawan" value={newEmployee.full_name}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, full_name: e.target.value })} style={input} />
+              </div>
+              <div>
+                <label style={label}>Divisi</label>
+                <select value={newEmployee.division}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, division: e.target.value })} style={input}>
+                  {DIVISIONS.map((d) => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={label}>Jabatan</label>
+                <input placeholder="Operator Produksi" value={newEmployee.position}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, position: e.target.value })} style={input} />
+              </div>
+            </div>
+            <button type="submit" style={{ ...button('gold'), marginTop: 16, maxWidth: 200 }}>Simpan Karyawan</button>
+          </form>
+        )}
+      </div>
+
+      <div style={card}>
+        <h3 style={cardTitle}>Daftar Karyawan</h3>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <thead>
+            <tr>
+              <th style={th}>NIK</th><th style={th}>Nama</th><th style={th}>Divisi</th>
+              <th style={th}>Jabatan</th><th style={th}>Status</th><th style={th}>Aksi</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {employees.map((emp) => (
+              <tr key={emp.id}>
+                <td style={{ ...td, fontFamily: "'IBM Plex Mono', monospace" }}>{emp.nik}</td>
+                <td style={td}>{emp.full_name}</td>
+                <td style={td}>{emp.division}</td>
+                <td style={td}>{emp.position}</td>
+                <td style={td}><span style={badge(statusVariant(emp.status))}>{emp.status === 'aktif' ? 'Aktif' : 'Resign'}</span></td>
+                <td style={td}>
+                  {filterStatus === 'aktif' && (
+                    <a href="#" onClick={(e) => { e.preventDefault(); markAsResign(emp.id); }} style={{ color: COLORS.rust }}>
+                      Tandai Resign
+                    </a>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {employees.length === 0 && (
+              <tr><td style={td} colSpan={6}>Tidak ada data.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </AppShell>
   );
 }
 
-const linkBtn = { background: 'none', border: 'none', color: '#2563eb', fontSize: 12, textDecoration: 'underline', cursor: 'pointer', padding: 0 };
-const btn = (active) => ({
-  padding: '8px 16px', borderRadius: 8, border: '1px solid #ddd',
-  background: active ? '#2563eb' : '#fff', color: active ? '#fff' : '#333', cursor: 'pointer',
-});
-const inputStyle = { display: 'block', width: '100%', maxWidth: 320, padding: 8, marginBottom: 8, borderRadius: 6, border: '1px solid #ddd' };
-const th = { padding: '8px 6px', fontSize: 13, color: '#555' };
-const td = { padding: '8px 6px', fontSize: 14 };
+const styles = {
+  periodFilter: {
+    position: 'absolute', right: 0, top: 'calc(100% + 8px)', zIndex: 20, width: 240,
+    background: '#fff', border: `1px solid ${COLORS.line}`, borderRadius: 10,
+    boxShadow: '0 12px 32px rgba(0,0,0,.14)', padding: 14,
+  },
+  pfTitle: { fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em', color: COLORS.muted, marginBottom: 10, fontWeight: 600 },
+  pfItem: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, padding: '6px 2px', cursor: 'pointer', color: COLORS.ink2 },
+};
